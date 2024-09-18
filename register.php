@@ -3,63 +3,62 @@ include 'db.php';
 
 session_start();
 
-
-// 初始化錯誤變數
+// Initialize error variable
 $error = '';
 
-// 如果 CSRF Token 不存在，生成一個新的
+// If CSRF Token doesn't exist, generate a new one
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // 初始化 $username 和 $password 變數
+    // Initialize $username and $password variables
     $username = isset($_POST['username']) ? trim($_POST['username']) : ''; 
     $password = isset($_POST['password']) ? trim($_POST['password']) : '';
 
-    // 檢查 CSRF Token
+    // Check CSRF Token
     if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-        $error = "CSRF Token 驗證失敗";
+        $error = "CSRF Token verification failed";
     } else {
-        // 檢查用戶名和密碼
+        // Check username and password
         if (empty($username) || empty($password)) {
-            $error = "用戶名和密碼均為必填";
+            $error = "Username and password are required";
         }
-        // 密碼強度檢查
+        // Password strength check
         elseif (strlen($password) < 8 || !preg_match("/[A-Z]/", $password) || !preg_match("/[0-9]/", $password)) {
-            $error = "密碼至少需包含8個字符、一個大寫字母和一個數字";
+            $error = "Password must be at least 8 characters long, include one uppercase letter and one number";
         } else {
-            // 檢查用戶名是否已經存在
-            $conn = getConnection(); // 獲取資料庫連接
+            // Check if username already exists
+            $conn = getConnection(); // Get database connection
             $stmt = $conn->prepare("SELECT * FROM users WHERE username = ?");
             $stmt->bind_param("s", $username);
             $stmt->execute();
             $result = $stmt->get_result();
 
             if ($result->num_rows > 0) {
-                $error = "用戶名已存在，請選擇其他用戶名";
-                error_log("嘗試使用已存在的用戶名 $username，時間: " . date("Y-m-d H:i:s") . "，IP: " . $_SERVER['REMOTE_ADDR']);
+                $error = "Username already exists, please choose another";
+                error_log("Attempt to use existing username $username, time: " . date("Y-m-d H:i:s") . ", IP: " . $_SERVER['REMOTE_ADDR']);
             } else {
-                // 如果用戶名不存在，插入新用戶
+                // If username doesn't exist, insert new user
                 $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-                $role = "user"; // 默認角色
+                $role = "user"; // Default role
 
                 $stmt = $conn->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)");
                 $stmt->bind_param("sss", $username, $hashed_password, $role);
 
                 if ($stmt->execute()) {
-                    // 註冊成功，記錄日誌並重定向到登錄頁面
-                    error_log("新用戶註冊成功: $username，時間: " . date("Y-m-d H:i:s") . "，IP: " . $_SERVER['REMOTE_ADDR']);
+                    // Registration successful, log event and redirect to login page
+                    error_log("New user registration successful: $username, time: " . date("Y-m-d H:i:s") . ", IP: " . $_SERVER['REMOTE_ADDR']);
                     
-                    // 防止會話固定攻擊
+                    // Prevent session fixation attack
                     session_regenerate_id(true);
                     
-                    // 重定向到登錄頁面
+                    // Redirect to login page
                     header("Location: login.php");
                     exit;
                 } else {
-                    $error = "註冊過程中出錯: " . $stmt->error;
-                    error_log("註冊過程中發生錯誤: " . $stmt->error);
+                    $error = "Error occurred during registration: " . $stmt->error;
+                    error_log("Error during registration: " . $stmt->error);
                 }
             }
 
@@ -70,13 +69,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 ?>
 
 <!DOCTYPE html>
-<html lang="zh-HK">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>註冊</title>
+    <title>Register</title>
     <style>
-        /* 簡單的表單樣式 */
+        /* Simple form styles */
         form {
             margin: 20px;
         }
@@ -97,7 +96,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     </style>
     <script>
-        // 密碼強度檢查
+        // Password strength check
         function validatePassword() {
             const password = document.getElementById("password").value;
             const strengthText = document.getElementById("strengthText");
@@ -107,10 +106,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             const hasMinLength = password.length >= 8;
 
             if (hasUppercase && hasNumber && hasMinLength) {
-                strengthText.textContent = "密碼強度：強";
+                strengthText.textContent = "Password strength: Strong";
                 strengthText.style.color = "green";
             } else {
-                strengthText.textContent = "密碼至少需包含8個字符、一個大寫字母和一個數字";
+                strengthText.textContent = "Password must be at least 8 characters long, include one uppercase letter and one number";
                 strengthText.style.color = "red";
             }
         }
@@ -118,29 +117,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </head>
 <body>
 
-<h1>註冊新帳戶</h1>
+<h1>Register a New Account</h1>
 
 <form method="POST">
     <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
     
-    <label for="username">用戶名:</label>
-    <input type="text" name="username" pattern="[A-Za-z0-9]{5,}" title="用戶名必須至少包含5個字母或數字" required><br>
+    <label for="username">Username:</label>
+    <input type="text" name="username" pattern="[A-Za-z0-9]{5,}" title="Username must be at least 5 letters or numbers" required><br>
     
-    <label for="password">密碼:</label>
+    <label for="password">Password:</label>
     <input type="password" id="password" name="password" oninput="validatePassword()" required>
-    <small id="strengthText" style="color: red;">密碼至少需包含8個字符、一個大寫字母和一個數字</small><br>
+    <small id="strengthText" style="color: red;">Password must be at least 8 characters long, include one uppercase letter and one number</small><br>
     
-    <button type="submit">註冊</button>
+    <button type="submit">Register</button>
 </form>
 
 <?php if (!empty($error)): ?>
     <div class="error">
-        <?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?> <!-- 防止XSS攻擊 -->
+        <?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?> <!-- Prevent XSS -->
     </div>
 <?php endif; ?>
 
-<!-- 登入按鈕 -->
-<a href="login.php" class="login-btn">已有帳號？點此登入</a>
+<!-- Login button -->
+<a href="login.php" class="login-btn">Already have an account? Click here to log in</a>
 
 </body>
 </html>

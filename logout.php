@@ -1,32 +1,32 @@
 <?php
 session_start();
 
-// 檢查是否存在會話
+// Check if session exists
 if (isset($_SESSION['username'])) {
-    // 記錄登出事件
+    // Log the logout event
     $username = $_SESSION['username'];
     $user_ip = $_SERVER['REMOTE_ADDR'];
     $timestamp = date("Y-m-d H:i:s");
-    error_log("用戶 $username 已登出，IP: $user_ip，時間: $timestamp");
+    error_log("User $username has logged out, IP: $user_ip, Time: $timestamp");
 
-    // 清除會話數據
+    // Clear session data
     session_unset();
     session_destroy();
 
-    // 重新啟動會話，並生成一個新的會話ID來防止會話固定攻擊
+    // Restart session and regenerate session ID to prevent session fixation attacks
     session_start();
     session_regenerate_id(true);
 
-    // 清除所有快取，防止回退攻擊
+    // Clear all caches to prevent back button attacks
     header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
-    header("Pragma: no-cache"); // 用於防止舊版本的瀏覽器快取
-    header("Expires: Sat, 26 Jul 1997 05:00:00 GMT"); // 過期時間設置為過去
+    header("Pragma: no-cache"); // Used to prevent caching in older browsers
+    header("Expires: Sat, 26 Jul 1997 05:00:00 GMT"); // Set expiration date to the past
 
-    // 重定向到登錄頁面
+    // Redirect to the login page
     header("Location: login.php");
     exit;
 } else {
-    // 如果用戶未登錄，直接重定向到登錄頁面
+    // If the user is not logged in, redirect to the login page
     header("Location: login.php");
     exit;
 }

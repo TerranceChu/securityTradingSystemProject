@@ -8,40 +8,40 @@ if (!isset($_SESSION['username'])) {
     exit;
 }
 
-// 如果尚未生成 CSRF Token，生成一個
+// If the CSRF Token has not been generated, create one
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-$error = ''; // 初始化錯誤消息變數
+$error = ''; // Initialize error message variable
 
 try {
-    $conn = getConnection(); // 獲取全局數據庫連接
+    $conn = getConnection(); // Get global database connection
 
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
-        // 1. 檢查 CSRF Token
+        // 1. Check the CSRF Token
         if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-            $error = "CSRF Token 驗證失敗";
+            $error = "CSRF Token validation failed";
         }
 
-        // 2. 驗證股票代碼
+        // 2. Validate the stock symbol
         elseif (!preg_match("/^[A-Z]{1,5}$/", $_POST['stock_symbol'])) {
-            $error = "無效的股票代碼";
+            $error = "Invalid stock symbol";
         }
 
-        // 3. 驗證數量
+        // 3. Validate the quantity
         elseif (!is_numeric($_POST['quantity']) || $_POST['quantity'] <= 0 || intval($_POST['quantity']) != $_POST['quantity']) {
-            $error = "無效的數量，必須是正整數";
+            $error = "Invalid quantity, must be a positive integer";
         }
 
-        // 4. 驗證交易類型
+        // 4. Validate the trade type
         elseif (!in_array($_POST['trade_type'], ['buy', 'sell'])) {
-            $error = "無效的交易類型";
+            $error = "Invalid trade type";
         }
 
         if (empty($error)) {
-            // 查詢用戶的 ID
+            // Query for the user's ID
             $username = $_SESSION['username'];
             $stmt = $conn->prepare("SELECT id FROM users WHERE username = ?");
             $stmt->bind_param("s", $username);
@@ -52,18 +52,18 @@ try {
                 $row = $result->fetch_assoc();
                 $user_id = $row['id'];
 
-                // 將股票代碼轉換為大寫並修整
+                // Convert stock symbol to uppercase and trim it
                 $stock_symbol = strtoupper(trim($_POST['stock_symbol']));
-                $quantity = intval($_POST['quantity']); // 將數量轉為整數
+                $quantity = intval($_POST['quantity']); // Convert quantity to integer
                 
-                // 調試數量，確保數量在加密之前正確
-                echo "原始數量（加密前）: " . $quantity . "<br>";
+                // Debug quantity to ensure it's correct before encryption
+                echo "Original quantity (before encryption): " . $quantity . "<br>";
 
                 $trade_type = $_POST['trade_type'];
 
-                // 處理賣出操作前的股票數量驗證
+                // Validate stock quantity before processing a sell operation
                 if ($trade_type === 'sell') {
-                    // 查詢持有的股票數量
+                    // Query the stock quantity owned by the user
                     $stmt = $conn->prepare("SELECT quantity FROM user_stocks WHERE user_id = ? AND stock_symbol = ?");
                     $stmt->bind_param("is", $user_id, $stock_symbol);
                     $stmt->execute();
@@ -73,21 +73,21 @@ try {
                     $current_quantity = $row['quantity'] ?? 0;
 
                     if ($current_quantity < $quantity) {
-                        $error = "賣出失敗：持有股票數量不足";
+                        $error = "Sell failed: insufficient stock quantity";
                     }
                 }
 
                 if (empty($error)) {
-                    // 加密股票代碼和數量
+                    // Encrypt stock symbol and quantity
                     $encrypted_symbol = encryptData($stock_symbol);
-                    $quantity = intval($_POST['quantity']); // 不加密，保持數字
+                    $quantity = intval($_POST['quantity']); // Keep quantity as a number, no encryption
 
-                    // 插入交易記錄
+                    // Insert the trade record
                     $stmt = $conn->prepare("INSERT INTO trades (user_id, stock_symbol, quantity, trade_type) VALUES (?, ?, ?, ?)");
                     $stmt->bind_param("ssis", $user_id, $encrypted_symbol, $quantity, $trade_type);
 
                     if ($stmt->execute()) {
-                        // 根據交易類型更新 user_stocks 表
+                        // Update user_stocks table based on the trade type
                         if ($trade_type === 'buy') {
                             $stmt = $conn->prepare("INSERT INTO user_stocks (user_id, stock_symbol, quantity) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE quantity = quantity + ?");
                             $stmt->bind_param("issi", $user_id, $encrypted_symbol, $quantity, $quantity);
@@ -97,52 +97,52 @@ try {
                         }
 
                         if ($stmt->execute()) {
-                            // 交易成功後重新生成 CSRF Token
+                            // After successful trade, regenerate CSRF Token
                             $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 
-                            // 清除表單數據
+                            // Clear form data
                             $_POST['stock_symbol'] = '';
                             $_POST['quantity'] = '';
-                            $_POST['trade_type'] = 'buy'; // 默認選擇 "buy"
+                            $_POST['trade_type'] = 'buy'; // Default to "buy"
 
-                            // 記錄成功交易
-                            error_log("用戶 $username 成功進行了一次交易: $trade_type $quantity $stock_symbol");
+                            // Log the successful trade
+                            error_log("User $username successfully executed a trade: $trade_type $quantity $stock_symbol");
 
-                            // 重定向，防止重複提交
+                            // Redirect to prevent form resubmission
                             header("Location: trade.php?success=true");
                             exit;
                         } else {
-                            $error = "更新持股記錄時出錯: " . $stmt->error;
+                            $error = "Error updating stock record: " . $stmt->error;
                         }
                     } else {
-                        $error = "交易過程中發生錯誤: " . $stmt->error;
+                        $error = "Error processing trade: " . $stmt->error;
                     }
                 }
 
                 $stmt->close();
             } else {
-                $error = "用戶不存在，請重新登錄";
+                $error = "User not found, please log in again";
             }
         }
 
     }
 } catch (Exception $e) {
-    $error = "系統錯誤: " . $e->getMessage();
-    error_log("交易系統錯誤: " . $e->getMessage());
+    $error = "System error: " . $e->getMessage();
+    error_log("Trade system error: " . $e->getMessage());
 }
 ?>
 <nav style="background-color: #333; padding: 10px; color: white;">
-    <a href="dashboard.php" style="color: white; margin-right: 20px; text-decoration: none;">交易歷史記錄</a>
-    <a href="trade.php" style="color: white; margin-right: 20px; text-decoration: none;">進行交易</a>
-    <a href="logout.php" style="color: white; text-decoration: none;">登出</a>
+    <a href="dashboard.php" style="color: white; margin-right: 20px; text-decoration: none;">Trade History</a>
+    <a href="trade.php" style="color: white; margin-right: 20px; text-decoration: none;">Make a Trade</a>
+    <a href="logout.php" style="color: white; text-decoration: none;">Logout</a>
 </nav>
 
-<!-- 股票代碼表格 -->
-<h2>熱門股票代碼</h2>
+<!-- Stock code table -->
+<h2>Popular Stock Codes</h2>
 <table border="1" cellpadding="10" cellspacing="0" style="width: 100%; text-align: center;">
     <tr>
-        <th>股票名稱</th>
-        <th>股票代碼</th>
+        <th>Stock Name</th>
+        <th>Stock Code</th>
     </tr>
     <tr>
         <td>Apple</td>
@@ -166,16 +166,16 @@ try {
     </tr>
 </table>
 
-<!-- 交易表單 -->
+<!-- Trade form -->
 <form method="POST">
     <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
-    股票代碼: <input type="text" name="stock_symbol" value="<?php echo htmlspecialchars($_POST['stock_symbol'] ?? '', ENT_QUOTES); ?>" required><br>
-    數量: <input type="number" name="quantity" value="<?php echo htmlspecialchars($_POST['quantity'] ?? '', ENT_QUOTES); ?>" required><br>
-    買賣: <select name="trade_type">
-        <option value="buy" <?php echo ($_POST['trade_type'] ?? '') == 'buy' ? 'selected' : ''; ?>>買入</option>
-        <option value="sell" <?php echo ($_POST['trade_type'] ?? '') == 'sell' ? 'selected' : ''; ?>>賣出</option>
+    Stock Symbol: <input type="text" name="stock_symbol" value="<?php echo htmlspecialchars($_POST['stock_symbol'] ?? '', ENT_QUOTES); ?>" required><br>
+    Quantity: <input type="number" name="quantity" value="<?php echo htmlspecialchars($_POST['quantity'] ?? '', ENT_QUOTES); ?>" required><br>
+    Trade Type: <select name="trade_type">
+        <option value="buy" <?php echo ($_POST['trade_type'] ?? '') == 'buy' ? 'selected' : ''; ?>>Buy</option>
+        <option value="sell" <?php echo ($_POST['trade_type'] ?? '') == 'sell' ? 'selected' : ''; ?>>Sell</option>
     </select><br>
-    <button type="submit">提交交易</button>
+    <button type="submit">Submit Trade</button>
 </form>
 
 <?php if (!empty($error)): ?>
@@ -186,6 +186,6 @@ try {
 
 <?php if (isset($_GET['success']) && $_GET['success'] == 'true'): ?>
     <div style="color: green; border: 1px solid green; padding: 5px;">
-        交易已成功提交。
+        Trade successfully submitted.
     </div>
 <?php endif; ?>

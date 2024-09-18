@@ -3,19 +3,19 @@ include 'db.php';
 
 session_start();
 
-// 檢查用戶是否已登錄
+// Check if the user is logged in
 if (!isset($_SESSION['username'])) {
     header("Location: login.php");
     exit;
 }
 
-// 獲取當前登錄用戶的用戶名
+// Retrieve the current logged-in username
 $username = $_SESSION['username'];
 
-// 建立數據庫連接
+// Establish a database connection
 $conn = getConnection();
 
-// 查詢用戶的 ID
+// Query the user's ID
 $stmt = $conn->prepare("SELECT id FROM users WHERE username = ?");
 $stmt->bind_param("s", $username);
 $stmt->execute();
@@ -23,13 +23,13 @@ $result = $stmt->get_result();
 $user = $result->fetch_assoc();
 $user_id = $user['id'];
 
-// 查詢用戶持有的股票，使用加密和解密功能
+// Query the user's held stocks, using encryption and decryption
 $stmt = $conn->prepare("SELECT stock_symbol, quantity FROM user_stocks WHERE user_id = ?");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $stocks_result = $stmt->get_result();
 
-// 查詢交易歷史，使用 JOIN 來直接從用戶名查詢交易記錄
+// Query the transaction history, using JOIN to directly fetch transaction records by username
 $stmt = $conn->prepare("
     SELECT t.stock_symbol, t.quantity, t.trade_type, t.trade_time 
     FROM trades t 
@@ -40,19 +40,19 @@ $stmt->bind_param("s", $username);
 $stmt->execute();
 $trades_result = $stmt->get_result();
 
-// 如果查詢失敗，記錄錯誤
+// Log an error if the query fails
 if (!$trades_result) {
-    error_log("交易歷史查詢錯誤: " . $conn->error);
-    die("系統錯誤，請稍後再試。");
+    error_log("Transaction history query error: " . $conn->error);
+    die("System error, please try again later.");
 }
 ?>
 
 <!DOCTYPE html>
-<html lang="zh-HK">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>儀表板</title>
+    <title>Dashboard</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -111,44 +111,44 @@ if (!$trades_result) {
 </head>
 <body>
 
-<!-- 導航欄 -->
+<!-- Navigation bar -->
 <nav>
-    <a href="dashboard.php">交易歷史記錄</a>
-    <a href="trade.php">進行交易</a>
-    <a href="logout.php">登出</a>
+    <a href="dashboard.php">Transaction History</a>
+    <a href="trade.php">Make a Trade</a>
+    <a href="logout.php">Logout</a>
 </nav>
 
-<h1>持有的股票</h1>
+<h1>Held Stocks</h1>
 
 <?php
 if ($stocks_result->num_rows > 0) {
     echo "<table>";
-    echo "<tr><th>股票代碼</th><th>數量</th></tr>";
+    echo "<tr><th>Stock Symbol</th><th>Quantity</th></tr>";
     while ($row = $stocks_result->fetch_assoc()) {
-    $encrypted_stock_symbol = $row['stock_symbol'];
-    $stock_symbol = decryptData($encrypted_stock_symbol); // 解密股票代碼
+        $encrypted_stock_symbol = $row['stock_symbol'];
+        $stock_symbol = decryptData($encrypted_stock_symbol); // Decrypt stock symbol
 
-    $quantity = $row['quantity']; // 不需要解密 quantity
+        $quantity = $row['quantity'];
 
-    echo "<tr>
-            <td>" . htmlspecialchars($stock_symbol, ENT_QUOTES, 'UTF-8') . "</td>
-            <td>" . htmlspecialchars($quantity, ENT_QUOTES, 'UTF-8') . "</td>
-          </tr>";
+        echo "<tr>
+                <td>" . htmlspecialchars($stock_symbol, ENT_QUOTES, 'UTF-8') . "</td>
+                <td>" . htmlspecialchars($quantity, ENT_QUOTES, 'UTF-8') . "</td>
+              </tr>";
     }
     echo "</table>";
 } else {
-    echo "<p class='no-records'>暫無持有股票</p>";
+    echo "<p class='no-records'>No stocks held</p>";
 }
 ?>
 
-<h1>交易歷史記錄</h1>
+<h1>Transaction History</h1>
 
 <?php
 if ($trades_result->num_rows > 0) {
     echo "<table>";
-    echo "<tr><th>股票代碼</th><th>數量</th><th>類型</th><th>交易時間</th></tr>";
+    echo "<tr><th>Stock Symbol</th><th>Quantity</th><th>Type</th><th>Transaction Time</th></tr>";
     while ($row = $trades_result->fetch_assoc()) {
-        // 解密數據
+        // Decrypt data
         $stock_symbol = htmlspecialchars(decryptData($row['stock_symbol']), ENT_QUOTES, 'UTF-8');
         $quantity = htmlspecialchars($row['quantity'], ENT_QUOTES, 'UTF-8');
         $trade_type = htmlspecialchars($row['trade_type'], ENT_QUOTES, 'UTF-8');
@@ -163,10 +163,10 @@ if ($trades_result->num_rows > 0) {
     }
     echo "</table>";
 } else {
-    echo "<p class='no-records'>暫無交易記錄</p>";
+    echo "<p class='no-records'>No transaction records</p>";
 }
 
-// 關閉數據庫連接
+// Close the database connection
 $stmt->close();
 ?>
 

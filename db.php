@@ -1,55 +1,54 @@
 <?php
-// 全局連接變量
+// Global connection variable
 $global_conn = null;
-$encryption_key = base64_decode('aovPWMLHmOZJ1UxjpglogXm7a9DtkzA6MQws1Hjn9QU='); // 使用 Base64 編碼加密密鑰
+$encryption_key = base64_decode('aovPWMLHmOZJ1UxjpglogXm7a9DtkzA6MQws1Hjn9QU='); // Use Base64 encoded encryption key
 $iv = base64_decode('ycCzJWI1AtVxFEjO1+n7hw==');
 
-// 修改加密函數，將加密後的數據進行 base64 編碼
+// Modify the encryption function, base64 encode the encrypted data
 function encryptData($data) {
     global $encryption_key, $iv;
 
-    // 檢查加密結果是否成功
+    // Check if the encryption result was successful
     $encrypted = openssl_encrypt($data, 'aes-256-cbc', $encryption_key, 0, $iv);
     if ($encrypted === false) {
-        // 打印錯誤消息
-        error_log("加密過程失敗: " . openssl_error_string());
+        // Log the error message
+        error_log("Encryption failed: " . openssl_error_string());
         return null;
     }
 
-    // 使用 base64 編碼以便數據庫存儲
+    // Use base64 encoding to store in the database
     return base64_encode($encrypted);
 }
 
 function decryptData($data) {
     global $encryption_key, $iv;
 
-    // Base64 解碼
+    // Base64 decode
     $decoded_data = base64_decode($data);
     if ($decoded_data === false) {
-        error_log("Base64 解碼失敗");
+        error_log("Base64 decoding failed");
         return null;
     }
 
-    // 解密數據
+    // Decrypt data
     $decrypted = openssl_decrypt($decoded_data, 'aes-256-cbc', $encryption_key, 0, $iv);
     if ($decrypted === false) {
-        // 打印錯誤消息
-        error_log("解密過程失敗: " . openssl_error_string());
+        // Log the error message
+        error_log("Decryption failed: " . openssl_error_string());
         return null;
     }
 
     return $decrypted;
 }
 
-
-// 設置會話安全配置
-ini_set('session.cookie_httponly', 1); // 防止 JavaScript 存取 Cookie
-ini_set('session.cookie_secure', 1);    // 只允許 HTTPS 連接時傳輸 Cookie
+// Set session security configurations
+ini_set('session.cookie_httponly', 1); // Prevent JavaScript from accessing cookies
+ini_set('session.cookie_secure', 1);    // Only allow cookies to be transmitted over HTTPS
 
 function getConnection() {
     global $global_conn;
 
-    // 如果尚未建立連接，則進行連接
+    // If no connection is established yet, create one
     if ($global_conn === null) {
         $config = include 'D:/xampp/config/config.php';
         $servername = $config['db_host'];
@@ -57,46 +56,46 @@ function getConnection() {
         $password = $config['db_pass'];
         $dbname = $config['db_name'];
 
-        // 建立連接
+        // Create connection
         $global_conn = new mysqli($servername, $username, $password, $dbname);
 
-        // 獲取當前時間和用戶IP地址，用於日誌記錄
+        // Get the current time and user's IP address for logging purposes
         $timestamp = date("Y-m-d H:i:s");
         $user_ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 
-        // 檢查連接是否成功
+        // Check if the connection was successful
         if ($global_conn->connect_error) {
-            // 記錄錯誤到日誌文件，而不是顯示技術細節給用戶
-            $error_message = "[$timestamp] [IP: $user_ip] 連接失敗: " . $global_conn->connect_error;
+            // Log the error to a file instead of showing technical details to the user
+            $error_message = "[$timestamp] [IP: $user_ip] Connection failed: " . $global_conn->connect_error;
             error_log($error_message, 3, __DIR__ . "/error_log.txt");
-            die("數據庫連接失敗，請稍後重試。");
+            die("Database connection failed, please try again later.");
         }
 
-        // 設置字符集，防止數據庫字符編碼問題
+        // Set character set to prevent database encoding issues
         if (!$global_conn->set_charset("utf8mb4")) {
-            $error_message = "[$timestamp] [IP: $user_ip] 字符集設置失敗: " . $global_conn->error;
+            $error_message = "[$timestamp] [IP: $user_ip] Charset setting failed: " . $global_conn->error;
             error_log($error_message, 3, __DIR__ . "/error_log.txt");
-            die("字符集設置失敗，請稍後重試。");
+            die("Charset setting failed, please try again later.");
         }
 
-        // 記錄成功連接的日誌
-        $success_message = "[$timestamp] [IP: $user_ip] 成功連接到數據庫";
+        // Log successful connection
+        $success_message = "[$timestamp] [IP: $user_ip] Successfully connected to the database";
         error_log($success_message, 3, __DIR__ . "/error_log.txt");
     }
 
-    // 返回全局連接
+    // Return the global connection
     return $global_conn;
 }
 
-// 在腳本結束時自動關閉連接
+// Automatically close the connection at the end of the script
 register_shutdown_function(function() {
     global $global_conn;
     if ($global_conn !== null) {
         $timestamp = date("Y-m-d H:i:s");
         $user_ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-        error_log("[$timestamp] [IP: $user_ip] 關閉數據庫連接", 3, __DIR__ . "/error_log.txt");
+        error_log("[$timestamp] [IP: $user_ip] Closing database connection", 3, __DIR__ . "/error_log.txt");
         $global_conn->close();
-        $global_conn = null; // 確保連接被設置為 null，防止重複關閉
+        $global_conn = null; // Ensure the connection is set to null to prevent duplicate closures
     }
 });
 ?>
