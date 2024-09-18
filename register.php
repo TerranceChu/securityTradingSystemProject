@@ -11,7 +11,7 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // 初始化 $username 變數
+    // 初始化 $username 和 $password 變數
     $username = isset($_POST['username']) ? trim($_POST['username']) : ''; 
     $password = isset($_POST['password']) ? trim($_POST['password']) : '';
 
@@ -48,6 +48,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 if ($stmt->execute()) {
                     // 註冊成功，記錄日誌並重定向到登錄頁面
                     error_log("新用戶註冊成功: $username，時間: " . date("Y-m-d H:i:s") . "，IP: " . $_SERVER['REMOTE_ADDR']);
+                    
+                    // 防止會話固定攻擊
+                    session_regenerate_id(true);
+                    
+                    // 重定向到登錄頁面
                     header("Location: login.php");
                     exit;
                 } else {

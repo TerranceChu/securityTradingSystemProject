@@ -72,15 +72,19 @@ try {
                 }
 
                 if (empty($error)) {
+                    // 加密股票代碼和數量
+                    $encrypted_symbol = encryptData($stock_symbol);
+                    $encrypted_quantity = encryptData($quantity);
+
                     // 插入交易記錄
                     $stmt = $conn->prepare("INSERT INTO trades (user_id, stock_symbol, quantity, trade_type) VALUES (?, ?, ?, ?)");
-                    $stmt->bind_param("ssis", $user_id, $stock_symbol, $quantity, $trade_type);
+                    $stmt->bind_param("ssis", $user_id, $encrypted_symbol, $encrypted_quantity, $trade_type);
 
                     if ($stmt->execute()) {
                         // 根據交易類型更新 user_stocks 表
                         if ($trade_type === 'buy') {
                             $stmt = $conn->prepare("INSERT INTO user_stocks (user_id, stock_symbol, quantity) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE quantity = quantity + ?");
-                            $stmt->bind_param("issi", $user_id, $stock_symbol, $quantity, $quantity);
+                            $stmt->bind_param("issi", $user_id, $encrypted_symbol, $encrypted_quantity, $encrypted_quantity);
                         } else if ($trade_type === 'sell') {
                             $stmt = $conn->prepare("UPDATE user_stocks SET quantity = quantity - ? WHERE user_id = ? AND stock_symbol = ?");
                             $stmt->bind_param("iis", $quantity, $user_id, $stock_symbol);

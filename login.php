@@ -35,7 +35,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && empty($error)) {
     // 檢查 CSRF Token
     if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
         $error = "CSRF Token 驗證失敗";
-        error_log("[" . date("Y-m-d H:i:s") . "] IP: {$_SERVER['REMOTE_ADDR']} CSRF Token 驗證失敗，嘗試登錄用戶: $username");
+        error_log("[" . date("Y-m-d H:i:s") . "] IP: {$_SERVER['REMOTE_ADDR']} CSRF Token 驗證失敗");
     } else {
         // 清理輸入
         $username = trim($_POST['username']);
@@ -81,7 +81,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && empty($error)) {
             } else {
                 $error = "用戶名不存在";
                 // 記錄用戶不存在的日誌
-                error_log("[" . date("Y-m-d H:i:s") . "] IP: {$_SERVER['REMOTE_ADDR']} 用戶 $username 不存在");
+                error_log("[" . date("Y-m-d H:i:s") . "] IP: {$_SERVER['REMOTE_ADDR']} 嘗試的用戶名 $username 不存在");
             }
 
             $stmt->close();

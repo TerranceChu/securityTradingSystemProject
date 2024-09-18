@@ -1,6 +1,24 @@
 <?php
 // 全局連接變量
 $global_conn = null;
+$encryption_key = 'your-encryption-key'; // 請確保這個密鑰足夠強大，且保持機密
+$iv = 'your-initialization-vector'; // 初始化向量，需為 16 字節長的安全隨機字節
+
+// 加密函數
+function encryptData($data) {
+    global $encryption_key, $iv;
+    return openssl_encrypt($data, 'aes-256-cbc', $encryption_key, 0, $iv);
+}
+
+// 解密函數
+function decryptData($data) {
+    global $encryption_key, $iv;
+    return openssl_decrypt($data, 'aes-256-cbc', $encryption_key, 0, $iv);
+}
+
+// 設置會話安全配置
+ini_set('session.cookie_httponly', 1); // 防止 JavaScript 存取 Cookie
+ini_set('session.cookie_secure', 1);    // 只允許 HTTPS 連接時傳輸 Cookie
 
 function getConnection() {
     global $global_conn;

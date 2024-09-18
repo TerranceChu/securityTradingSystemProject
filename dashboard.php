@@ -7,7 +7,7 @@ if (!isset($_SESSION['username'])) {
     exit;
 }
 
-// 引入數據庫連接函數
+// 引入數據庫連接函數和加密函數
 include 'db.php';
 
 // 獲取當前登錄用戶的用戶名
@@ -24,7 +24,7 @@ $result = $stmt->get_result();
 $user = $result->fetch_assoc();
 $user_id = $user['id'];
 
-// 查詢用戶持有的股票
+// 查詢用戶持有的股票，使用加密和解密功能
 $stmt = $conn->prepare("SELECT stock_symbol, quantity FROM user_stocks WHERE user_id = ?");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
@@ -126,8 +126,9 @@ if ($stocks_result->num_rows > 0) {
     echo "<table>";
     echo "<tr><th>股票代碼</th><th>數量</th></tr>";
     while ($row = $stocks_result->fetch_assoc()) {
-        $stock_symbol = htmlspecialchars($row['stock_symbol'], ENT_QUOTES, 'UTF-8');
-        $quantity = htmlspecialchars($row['quantity'], ENT_QUOTES, 'UTF-8');
+        // 解密數據
+        $stock_symbol = htmlspecialchars(decryptData($row['stock_symbol']), ENT_QUOTES, 'UTF-8');
+        $quantity = htmlspecialchars(decryptData($row['quantity']), ENT_QUOTES, 'UTF-8');
         echo "<tr>
                 <td>{$stock_symbol}</td>
                 <td>{$quantity}</td>
@@ -146,8 +147,9 @@ if ($trades_result->num_rows > 0) {
     echo "<table>";
     echo "<tr><th>股票代碼</th><th>數量</th><th>類型</th><th>交易時間</th></tr>";
     while ($row = $trades_result->fetch_assoc()) {
-        $stock_symbol = htmlspecialchars($row['stock_symbol'], ENT_QUOTES, 'UTF-8');
-        $quantity = htmlspecialchars($row['quantity'], ENT_QUOTES, 'UTF-8');
+        // 解密數據
+        $stock_symbol = htmlspecialchars(decryptData($row['stock_symbol']), ENT_QUOTES, 'UTF-8');
+        $quantity = htmlspecialchars(decryptData($row['quantity']), ENT_QUOTES, 'UTF-8');
         $trade_type = htmlspecialchars($row['trade_type'], ENT_QUOTES, 'UTF-8');
         $trade_time = htmlspecialchars($row['trade_time'], ENT_QUOTES, 'UTF-8');
         

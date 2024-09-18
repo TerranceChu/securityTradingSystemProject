@@ -4,7 +4,10 @@ session_start();
 // 檢查是否存在會話
 if (isset($_SESSION['username'])) {
     // 記錄登出事件
-    error_log("用戶 " . $_SESSION['username'] . " 已登出，IP: " . $_SERVER['REMOTE_ADDR'] . "，時間: " . date("Y-m-d H:i:s"));
+    $username = $_SESSION['username'];
+    $user_ip = $_SERVER['REMOTE_ADDR'];
+    $timestamp = date("Y-m-d H:i:s");
+    error_log("用戶 $username 已登出，IP: $user_ip，時間: $timestamp");
 
     // 清除會話數據
     session_unset();
