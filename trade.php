@@ -1,6 +1,7 @@
 <?php
-session_start();
 include 'db.php';
+
+session_start();
 
 if (!isset($_SESSION['username'])) {
     header("Location: login.php");
@@ -51,8 +52,13 @@ try {
                 $row = $result->fetch_assoc();
                 $user_id = $row['id'];
 
+                // 將股票代碼轉換為大寫並修整
                 $stock_symbol = strtoupper(trim($_POST['stock_symbol']));
                 $quantity = intval($_POST['quantity']); // 將數量轉為整數
+                
+                // 調試數量，確保數量在加密之前正確
+                echo "原始數量（加密前）: " . $quantity . "<br>";
+
                 $trade_type = $_POST['trade_type'];
 
                 // 處理賣出操作前的股票數量驗證
@@ -74,17 +80,17 @@ try {
                 if (empty($error)) {
                     // 加密股票代碼和數量
                     $encrypted_symbol = encryptData($stock_symbol);
-                    $encrypted_quantity = encryptData($quantity);
+                    $quantity = intval($_POST['quantity']); // 不加密，保持數字
 
                     // 插入交易記錄
                     $stmt = $conn->prepare("INSERT INTO trades (user_id, stock_symbol, quantity, trade_type) VALUES (?, ?, ?, ?)");
-                    $stmt->bind_param("ssis", $user_id, $encrypted_symbol, $encrypted_quantity, $trade_type);
+                    $stmt->bind_param("ssis", $user_id, $encrypted_symbol, $quantity, $trade_type);
 
                     if ($stmt->execute()) {
                         // 根據交易類型更新 user_stocks 表
                         if ($trade_type === 'buy') {
                             $stmt = $conn->prepare("INSERT INTO user_stocks (user_id, stock_symbol, quantity) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE quantity = quantity + ?");
-                            $stmt->bind_param("issi", $user_id, $encrypted_symbol, $encrypted_quantity, $encrypted_quantity);
+                            $stmt->bind_param("issi", $user_id, $encrypted_symbol, $quantity, $quantity);
                         } else if ($trade_type === 'sell') {
                             $stmt = $conn->prepare("UPDATE user_stocks SET quantity = quantity - ? WHERE user_id = ? AND stock_symbol = ?");
                             $stmt->bind_param("iis", $quantity, $user_id, $stock_symbol);
@@ -130,6 +136,37 @@ try {
     <a href="trade.php" style="color: white; margin-right: 20px; text-decoration: none;">進行交易</a>
     <a href="logout.php" style="color: white; text-decoration: none;">登出</a>
 </nav>
+
+<!-- 股票代碼表格 -->
+<h2>可用股票代碼</h2>
+<table border="1" cellpadding="10" cellspacing="0" style="width: 100%; text-align: center;">
+    <tr>
+        <th>熱門股票名稱</th>
+        <th>股票代碼</th>
+    </tr>
+    <tr>
+        <td>Apple</td>
+        <td>AAPL</td>
+    </tr>
+    <tr>
+        <td>Google</td>
+        <td>GOOGL</td>
+    </tr>
+    <tr>
+        <td>Amazon</td>
+        <td>AMZN</td>
+    </tr>
+    <tr>
+        <td>Microsoft</td>
+        <td>MSFT</td>
+    </tr>
+    <tr>
+        <td>Tesla</td>
+        <td>TSLA</td>
+    </tr>
+</table>
+
+<!-- 交易表單 -->
 <form method="POST">
     <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
     股票代碼: <input type="text" name="stock_symbol" value="<?php echo htmlspecialchars($_POST['stock_symbol'] ?? '', ENT_QUOTES); ?>" required><br>

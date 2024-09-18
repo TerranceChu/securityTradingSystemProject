@@ -1,4 +1,6 @@
 <?php
+include 'db.php';
+
 session_start();
 
 // 檢查用戶是否已登錄
@@ -6,9 +8,6 @@ if (!isset($_SESSION['username'])) {
     header("Location: login.php");
     exit;
 }
-
-// 引入數據庫連接函數和加密函數
-include 'db.php';
 
 // 獲取當前登錄用戶的用戶名
 $username = $_SESSION['username'];
@@ -126,13 +125,15 @@ if ($stocks_result->num_rows > 0) {
     echo "<table>";
     echo "<tr><th>股票代碼</th><th>數量</th></tr>";
     while ($row = $stocks_result->fetch_assoc()) {
-        // 解密數據
-        $stock_symbol = htmlspecialchars(decryptData($row['stock_symbol']), ENT_QUOTES, 'UTF-8');
-        $quantity = htmlspecialchars(decryptData($row['quantity']), ENT_QUOTES, 'UTF-8');
-        echo "<tr>
-                <td>{$stock_symbol}</td>
-                <td>{$quantity}</td>
-              </tr>";
+    $encrypted_stock_symbol = $row['stock_symbol'];
+    $stock_symbol = decryptData($encrypted_stock_symbol); // 解密股票代碼
+
+    $quantity = $row['quantity']; // 不需要解密 quantity
+
+    echo "<tr>
+            <td>" . htmlspecialchars($stock_symbol, ENT_QUOTES, 'UTF-8') . "</td>
+            <td>" . htmlspecialchars($quantity, ENT_QUOTES, 'UTF-8') . "</td>
+          </tr>";
     }
     echo "</table>";
 } else {
@@ -149,7 +150,7 @@ if ($trades_result->num_rows > 0) {
     while ($row = $trades_result->fetch_assoc()) {
         // 解密數據
         $stock_symbol = htmlspecialchars(decryptData($row['stock_symbol']), ENT_QUOTES, 'UTF-8');
-        $quantity = htmlspecialchars(decryptData($row['quantity']), ENT_QUOTES, 'UTF-8');
+        $quantity = htmlspecialchars($row['quantity'], ENT_QUOTES, 'UTF-8');
         $trade_type = htmlspecialchars($row['trade_type'], ENT_QUOTES, 'UTF-8');
         $trade_time = htmlspecialchars($row['trade_time'], ENT_QUOTES, 'UTF-8');
         

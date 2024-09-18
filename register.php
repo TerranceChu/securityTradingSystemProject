@@ -1,6 +1,8 @@
 <?php
-session_start();
 include 'db.php';
+
+session_start();
+
 
 // 初始化錯誤變數
 $error = '';

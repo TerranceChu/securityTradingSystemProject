@@ -1,20 +1,46 @@
 <?php
 // 全局連接變量
 $global_conn = null;
-$encryption_key = 'your-encryption-key'; // 請確保這個密鑰足夠強大，且保持機密
-$iv = 'your-initialization-vector'; // 初始化向量，需為 16 字節長的安全隨機字節
+$encryption_key = base64_decode('aovPWMLHmOZJ1UxjpglogXm7a9DtkzA6MQws1Hjn9QU='); // 使用你生成的 Base64 編碼加密密鑰
+$iv = base64_decode('ycCzJWI1AtVxFEjO1+n7hw==');
 
-// 加密函數
+// 修改加密函數，將加密後的數據進行 base64 編碼
 function encryptData($data) {
     global $encryption_key, $iv;
-    return openssl_encrypt($data, 'aes-256-cbc', $encryption_key, 0, $iv);
+
+    // 檢查加密結果是否成功
+    $encrypted = openssl_encrypt($data, 'aes-256-cbc', $encryption_key, 0, $iv);
+    if ($encrypted === false) {
+        // 打印錯誤消息
+        error_log("加密過程失敗: " . openssl_error_string());
+        return null;
+    }
+
+    // 使用 base64 編碼以便數據庫存儲
+    return base64_encode($encrypted);
 }
 
-// 解密函數
 function decryptData($data) {
     global $encryption_key, $iv;
-    return openssl_decrypt($data, 'aes-256-cbc', $encryption_key, 0, $iv);
+
+    // Base64 解碼
+    $decoded_data = base64_decode($data);
+    if ($decoded_data === false) {
+        error_log("Base64 解碼失敗");
+        return null;
+    }
+
+    // 解密數據
+    $decrypted = openssl_decrypt($decoded_data, 'aes-256-cbc', $encryption_key, 0, $iv);
+    if ($decrypted === false) {
+        // 打印錯誤消息
+        error_log("解密過程失敗: " . openssl_error_string());
+        return null;
+    }
+
+    return $decrypted;
 }
+
 
 // 設置會話安全配置
 ini_set('session.cookie_httponly', 1); // 防止 JavaScript 存取 Cookie
