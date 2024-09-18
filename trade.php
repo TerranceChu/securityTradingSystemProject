@@ -131,7 +131,7 @@ try {
     error_log("Trade system error: " . $e->getMessage());
 }
 ?>
-<nav style="background-color: #333; padding: 10px; color: white;">
+<nav style="background-color: #141414; padding: 10px; color: white;">
     <a href="dashboard.php" style="color: white; margin-right: 20px; text-decoration: none;">Trade History</a>
     <a href="trade.php" style="color: white; margin-right: 20px; text-decoration: none;">Make a Trade</a>
     <a href="logout.php" style="color: white; text-decoration: none;">Logout</a>

@@ -81,13 +81,13 @@ if (!$trades_result) {
             display: inline-block;
             margin-top: 20px;
             padding: 10px 20px;
-            background-color: #4CAF50;
+            background-color: #45a06b;
             color: white;
             text-decoration: none;
             border-radius: 5px;
         }
         a.action-link:hover {
-            background-color: #45a049;
+            background-color: #45a06b;
         }
         .no-records {
             text-align: center;
@@ -95,7 +95,7 @@ if (!$trades_result) {
             font-weight: bold;
         }
         nav {
-            background-color: #333;
+            background-color: #141414;
             padding: 10px;
             color: white;
         }
