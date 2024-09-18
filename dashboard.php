@@ -16,7 +16,21 @@ $username = $_SESSION['username'];
 // 建立數據庫連接
 $conn = getConnection();
 
-// 查詢交易歷史
+// 查詢用戶的 ID
+$stmt = $conn->prepare("SELECT id FROM users WHERE username = ?");
+$stmt->bind_param("s", $username);
+$stmt->execute();
+$result = $stmt->get_result();
+$user = $result->fetch_assoc();
+$user_id = $user['id'];
+
+// 查詢用戶持有的股票
+$stmt = $conn->prepare("SELECT stock_symbol, quantity FROM user_stocks WHERE user_id = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$stocks_result = $stmt->get_result();
+
+// 查詢交易歷史，使用 JOIN 來直接從用戶名查詢交易記錄
 $stmt = $conn->prepare("
     SELECT t.stock_symbol, t.quantity, t.trade_type, t.trade_time 
     FROM trades t 
@@ -25,26 +39,11 @@ $stmt = $conn->prepare("
 ");
 $stmt->bind_param("s", $username);
 $stmt->execute();
-$result = $stmt->get_result();
-
-// 查詢當前用戶持有的股票
-$stmt_stocks = $conn->prepare("
-    SELECT stock_symbol, quantity 
-    FROM user_stocks 
-    WHERE user_id = (SELECT id FROM users WHERE username = ?)
-");
-$stmt_stocks->bind_param("s", $username);
-$stmt_stocks->execute();
-$result_stocks = $stmt_stocks->get_result();
+$trades_result = $stmt->get_result();
 
 // 如果查詢失敗，記錄錯誤
-if (!$result) {
+if (!$trades_result) {
     error_log("交易歷史查詢錯誤: " . $conn->error);
-    die("系統錯誤，請稍後再試。");
-}
-
-if (!$result_stocks) {
-    error_log("持有股票查詢錯誤: " . $conn->error);
     die("系統錯誤，請稍後再試。");
 }
 ?>
@@ -54,7 +53,7 @@ if (!$result_stocks) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>交易歷史記錄</title>
+    <title>儀表板</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -120,15 +119,33 @@ if (!$result_stocks) {
     <a href="logout.php">登出</a>
 </nav>
 
+<h1>持有的股票</h1>
+
+<?php
+if ($stocks_result->num_rows > 0) {
+    echo "<table>";
+    echo "<tr><th>股票代碼</th><th>數量</th></tr>";
+    while ($row = $stocks_result->fetch_assoc()) {
+        $stock_symbol = htmlspecialchars($row['stock_symbol'], ENT_QUOTES, 'UTF-8');
+        $quantity = htmlspecialchars($row['quantity'], ENT_QUOTES, 'UTF-8');
+        echo "<tr>
+                <td>{$stock_symbol}</td>
+                <td>{$quantity}</td>
+              </tr>";
+    }
+    echo "</table>";
+} else {
+    echo "<p class='no-records'>暫無持有股票</p>";
+}
+?>
+
 <h1>交易歷史記錄</h1>
 
 <?php
-if ($result->num_rows > 0) {
-    // 以表格形式顯示交易歷史
+if ($trades_result->num_rows > 0) {
     echo "<table>";
     echo "<tr><th>股票代碼</th><th>數量</th><th>類型</th><th>交易時間</th></tr>";
-    while ($row = $result->fetch_assoc()) {
-        // 防止XSS攻擊
+    while ($row = $trades_result->fetch_assoc()) {
         $stock_symbol = htmlspecialchars($row['stock_symbol'], ENT_QUOTES, 'UTF-8');
         $quantity = htmlspecialchars($row['quantity'], ENT_QUOTES, 'UTF-8');
         $trade_type = htmlspecialchars($row['trade_type'], ENT_QUOTES, 'UTF-8');
@@ -145,33 +162,9 @@ if ($result->num_rows > 0) {
 } else {
     echo "<p class='no-records'>暫無交易記錄</p>";
 }
-?>
-
-<h1>持有的股票</h1>
-
-<?php
-if ($result_stocks->num_rows > 0) {
-    // 以表格形式顯示持有的股票
-    echo "<table>";
-    echo "<tr><th>股票代碼</th><th>數量</th></tr>";
-    while ($row_stocks = $result_stocks->fetch_assoc()) {
-        // 防止XSS攻擊
-        $stock_symbol = htmlspecialchars($row_stocks['stock_symbol'], ENT_QUOTES, 'UTF-8');
-        $quantity = htmlspecialchars($row_stocks['quantity'], ENT_QUOTES, 'UTF-8');
-        
-        echo "<tr>
-                <td>{$stock_symbol}</td>
-                <td>{$quantity}</td>
-              </tr>";
-    }
-    echo "</table>";
-} else {
-    echo "<p class='no-records'>您目前未持有任何股票</p>";
-}
 
 // 關閉數據庫連接
 $stmt->close();
-$stmt_stocks->close();
 ?>
 
 </body>
