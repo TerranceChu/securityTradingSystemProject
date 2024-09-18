@@ -56,16 +56,16 @@ try {
                 $stock_symbol = strtoupper(trim($_POST['stock_symbol']));
                 $quantity = intval($_POST['quantity']); // Convert quantity to integer
                 
-                // Debug quantity to ensure it's correct before encryption
-                echo "Original quantity (before encryption): " . $quantity . "<br>";
-
                 $trade_type = $_POST['trade_type'];
 
                 // Validate stock quantity before processing a sell operation
                 if ($trade_type === 'sell') {
-                    // Query the stock quantity owned by the user
+                    // Encrypt stock symbol before querying the stock quantity owned by the user
+                    $encrypted_symbol = encryptData($stock_symbol);
+
+                    // Query the stock quantity owned by the user using the encrypted stock symbol
                     $stmt = $conn->prepare("SELECT quantity FROM user_stocks WHERE user_id = ? AND stock_symbol = ?");
-                    $stmt->bind_param("is", $user_id, $stock_symbol);
+                    $stmt->bind_param("is", $user_id, $encrypted_symbol);
                     $stmt->execute();
                     $result = $stmt->get_result();
                     $row = $result->fetch_assoc();
@@ -93,7 +93,7 @@ try {
                             $stmt->bind_param("issi", $user_id, $encrypted_symbol, $quantity, $quantity);
                         } else if ($trade_type === 'sell') {
                             $stmt = $conn->prepare("UPDATE user_stocks SET quantity = quantity - ? WHERE user_id = ? AND stock_symbol = ?");
-                            $stmt->bind_param("iis", $quantity, $user_id, $stock_symbol);
+                            $stmt->bind_param("iis", $quantity, $user_id, $encrypted_symbol);
                         }
 
                         if ($stmt->execute()) {
@@ -131,6 +131,7 @@ try {
     error_log("Trade system error: " . $e->getMessage());
 }
 ?>
+
 <nav style="background-color: #141414; padding: 10px; color: white;">
     <a href="dashboard.php" style="color: white; margin-right: 20px; text-decoration: none;">Trade History</a>
     <a href="trade.php" style="color: white; margin-right: 20px; text-decoration: none;">Make a Trade</a>
