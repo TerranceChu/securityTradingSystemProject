@@ -20,7 +20,7 @@ if (isset($_SESSION['username'])) {
     // Clear all caches to prevent back button attacks
     header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
     header("Pragma: no-cache"); // Used to prevent caching in older browsers
-    header("Expires: Sat, 26 Jul 1997 05:00:00 GMT"); // Set expiration date to the past
+    header("Expires: Sat, 21 Jul 2000 05:00:00 GMT"); // Set expiration date to the past
 
     // Redirect to the login page
     header("Location: login.php");
