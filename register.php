@@ -84,13 +84,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             display: block;
             margin: 10px 0;
         }
-        button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px;
-            border: none;
-            border-radius: 5px;
-        }
         button:hover {
             background-color: #45a049;
         }
@@ -98,14 +91,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             color: red;
             border: 1px solid red;
             padding: 5px;
-        }
-        .login-btn {
-            background-color: #008CBA;
-            color: white;
-            text-decoration: none;
-            padding: 10px;
-            border-radius: 5px;
-            display: inline-block;
         }
         .login-btn:hover {
             background-color: #007B9E;

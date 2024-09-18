@@ -138,10 +138,10 @@ try {
 </nav>
 
 <!-- 股票代碼表格 -->
-<h2>可用股票代碼</h2>
+<h2>熱門股票代碼</h2>
 <table border="1" cellpadding="10" cellspacing="0" style="width: 100%; text-align: center;">
     <tr>
-        <th>熱門股票名稱</th>
+        <th>股票名稱</th>
         <th>股票代碼</th>
     </tr>
     <tr>

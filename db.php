@@ -1,7 +1,7 @@
 <?php
 // 全局連接變量
 $global_conn = null;
-$encryption_key = base64_decode('aovPWMLHmOZJ1UxjpglogXm7a9DtkzA6MQws1Hjn9QU='); // 使用你生成的 Base64 編碼加密密鑰
+$encryption_key = base64_decode('aovPWMLHmOZJ1UxjpglogXm7a9DtkzA6MQws1Hjn9QU='); // 使用 Base64 編碼加密密鑰
 $iv = base64_decode('ycCzJWI1AtVxFEjO1+n7hw==');
 
 // 修改加密函數，將加密後的數據進行 base64 編碼
@@ -51,10 +51,11 @@ function getConnection() {
 
     // 如果尚未建立連接，則進行連接
     if ($global_conn === null) {
-        $servername = "localhost";
-        $username = "root";
-        $password = "";
-        $dbname = "stock_trading_system";
+        $config = include 'D:/xampp/config/config.php';
+        $servername = $config['db_host'];
+        $username = $config['db_user'];
+        $password = $config['db_pass'];
+        $dbname = $config['db_name'];
 
         // 建立連接
         $global_conn = new mysqli($servername, $username, $password, $dbname);
